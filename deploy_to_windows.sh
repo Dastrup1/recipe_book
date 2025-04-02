@@ -3,7 +3,7 @@
 # === SETTINGS ===
 REMOTE_NAME="origin"
 BRANCH_NAME="main"
-WINDOWS_SSH="Dylan@DESKTOP-RNSKDPR"
+WINDOWS_SSH="Dylan@192.168.4.137"
 WINDOWS_PROJECT_PATH="C:/Users/Dylan/Desktop/recipe_book"
 
 echo "🚀 Starting deployment..."
