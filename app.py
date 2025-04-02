@@ -126,29 +126,26 @@ def register_options():
 ## LOGIN ##
 
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/login', methods=['OPTIONS', 'POST'])
 @cross_origin(origins=["http://localhost:3000", "https://recipes.dylanastrup.com"], supports_credentials=True)
 def login():
+    if request.method == 'OPTIONS':
+        # CORS preflight response
+        return '', 200
+
     data = request.get_json()
 
-    # Validate input
     if not data or 'username' not in data or 'password' not in data:
         return jsonify({"error": "Missing username or password"}), 400
 
     user = User.query.filter_by(username=data['username']).first()
 
-    # Check if user exists and password is correct
     if user and check_password_hash(user.password_hash, data['password']):
         access_token = create_access_token(identity=str(user.id), fresh=True)
         refresh_token = create_refresh_token(identity=str(user.id))
         return jsonify(access_token=access_token, refresh_token=refresh_token), 200
 
     return jsonify({"error": "Invalid credentials"}), 401
-
-@app.route('/api/login', methods=['OPTIONS'])
-@cross_origin(origins=["http://localhost:3000", "https://recipes.dylanastrup.com"], supports_credentials=True)
-def login_options():
-    return '', 200
 
 
 ## FORGOT PASSWORD ##
