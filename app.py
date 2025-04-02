@@ -15,7 +15,7 @@ from sqlalchemy import String, cast
 
 app = Flask(__name__)
 
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "https://recipes.dylanastrup.com"]}}, supports_credentials=True)
 
 # Database Configuration
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -26,7 +26,7 @@ db.init_app(app)
 migrate = Migrate(app,db)
 
 # Set up a secret key for signing JWT tokens
-app.config['JWT_SECRET_KEY'] = 'your_secret_key_here'  #CHANGE THIS
+app.config['JWT_SECRET_KEY'] = '9a8ab176bee3c41cddf4436bb6e1c41dfc7944bb4ee1dd1eded09372c8f05844'
 jwt = JWTManager(app)
 
 
@@ -157,7 +157,8 @@ def forgot_password():
     token = serializer.dumps(email, salt="password-reset-salt")
 
     # Create reset URL
-    reset_url = f"http://127.0.0.1:5000/reset-password/{token}"
+    origin = request.headers.get("Origin", "http://localhost:3000")
+    reset_url = f"{origin}/reset-password/{token}"  # ✅ Updated for production
 
     # Send Email
     msg = Message("Password Reset Request", recipients=[email])
@@ -750,4 +751,4 @@ def update_profile():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
