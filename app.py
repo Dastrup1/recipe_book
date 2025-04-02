@@ -62,7 +62,7 @@ serializer = URLSafeTimedSerializer(app.config['JWT_SECRET_KEY'])
 
 ## REGISTER ##
 
-@app.route('/api/register', methods=['POST'])
+@app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
 
@@ -109,7 +109,7 @@ def register():
 
 ## REGISTER OPTIONS ##
 
-@app.route('/api/register', methods=['OPTIONS'])
+@app.route('/register', methods=['OPTIONS'])
 def register_options():
     origin = request.headers.get('Origin', '')
     if origin in ["http://localhost:3000", "https://recipes.dylanastrup.com"]:
@@ -129,7 +129,6 @@ def register_options():
 @app.route('/login', methods=['OPTIONS', 'POST'])
 @cross_origin(origins=["http://localhost:3000", "https://recipes.dylanastrup.com"], supports_credentials=True)
 def login():
-    print(" /api/login route loaded")
     if request.method == 'OPTIONS':
         # CORS preflight response
         return '', 200
@@ -151,7 +150,7 @@ def login():
 
 ## FORGOT PASSWORD ##
 
-@app.route('/api/forgot-password', methods=['POST'])
+@app.route('/forgot-password', methods=['POST'])
 def forgot_password():
     data = request.get_json()
     email = data.get('email')
@@ -220,7 +219,7 @@ def test_route():
 
 ## GET ALL RECIPES ##
 
-@app.route('/api/recipes', methods=['GET'])
+@app.route('/recipes', methods=['GET'])
 @jwt_required()
 def get_recipes():
     current_user = get_jwt_identity()
@@ -311,7 +310,7 @@ def get_recipes():
 
 ## CREATE RECIPES ##
 
-@app.route('/api/recipes', methods=['POST'])
+@app.route('/recipes', methods=['POST'])
 def create_recipe():
     data = request.get_json()  # Get JSON data from request
 
@@ -442,7 +441,7 @@ def create_recipe():
 
 ## UPDATE RECIPE ##
 
-@app.route('/api/recipes/<int:recipe_id>', methods=['PUT'])
+@app.route('/recipes/<int:recipe_id>', methods=['PUT'])
 @jwt_required()
 def update_recipe(recipe_id):
     current_user = get_jwt_identity()
@@ -573,7 +572,7 @@ def update_recipe(recipe_id):
 
 ## DELETE RECIPE ##
 
-@app.route('/api/recipes/<int:recipe_id>', methods=['DELETE'])
+@app.route('/recipes/<int:recipe_id>', methods=['DELETE'])
 @jwt_required()
 def delete_recipe(recipe_id):
     current_user = get_jwt_identity()
@@ -606,7 +605,7 @@ def delete_recipe(recipe_id):
 
 ## GET RECIPE BY ID ##
 
-@app.route('/api/recipes/<int:recipe_id>', methods=['GET'])
+@app.route('/recipes/<int:recipe_id>', methods=['GET'])
 @jwt_required()
 def get_recipe(recipe_id):
     recipe_entry = Recipe.query.get(recipe_id)  # Fetch recipe by ID
@@ -663,7 +662,7 @@ def get_recipe(recipe_id):
 
 ## GET USER ##
 
-@app.route('/api/users/<int:user_id>', methods=['GET'])
+@app.route('/users/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user(user_id):
     current_user = get_jwt_identity()
@@ -682,7 +681,7 @@ def get_user(user_id):
 
 ## GET USERS RECIPES ##
 
-@app.route('/api/users/<int:user_id>/recipes', methods=['GET'])
+@app.route('/users/<int:user_id>/recipes', methods=['GET'])
 @jwt_required()
 def get_user_recipes(user_id):
     current_user = get_jwt_identity()
@@ -708,7 +707,7 @@ def get_user_recipes(user_id):
 
 ## UPDATE USER PROFILE ##
 
-@app.route('/api/update-profile', methods=['PUT'])
+@app.route('/update-profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
     current_user = get_jwt_identity()
