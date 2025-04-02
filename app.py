@@ -126,7 +126,7 @@ def register_options():
 ## LOGIN ##
 
 
-@app.route('/api/login', methods=['OPTIONS', 'POST'])
+@app.route('/login', methods=['OPTIONS', 'POST'])
 @cross_origin(origins=["http://localhost:3000", "https://recipes.dylanastrup.com"], supports_credentials=True)
 def login():
     print(" /api/login route loaded")
