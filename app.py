@@ -129,7 +129,7 @@ def register_options():
 @app.route('/api/login', methods=['OPTIONS', 'POST'])
 @cross_origin(origins=["http://localhost:3000", "https://recipes.dylanastrup.com"], supports_credentials=True)
 def login():
-    print(" /api/loing route loaded")
+    print(" /api/login route loaded")
     if request.method == 'OPTIONS':
         # CORS preflight response
         return '', 200
