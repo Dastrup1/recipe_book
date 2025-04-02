@@ -62,7 +62,7 @@ serializer = URLSafeTimedSerializer(app.config['JWT_SECRET_KEY'])
 
 ## REGISTER ##
 
-@app.route('/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
 
@@ -109,14 +109,18 @@ def register():
 
 ## REGISTER OPTIONS ##
 
-@app.route('/register', methods=['OPTIONS'])
+@app.route('/api/register', methods=['OPTIONS'])
 def register_options():
-    response = jsonify({"message": "CORS preflight successful"})
-    response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
-    response.headers.add("Access-Control-Allow-Credentials", "true")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    return response, 200
+    origin = request.headers.get('Origin', '')
+    if origin in ["http://localhost:3000", "https://recipes.dylanastrup.com"]:
+        response = jsonify({"message": "CORS preflight successful"})
+        response.headers.add("Access-Control-Allow-Origin", origin)
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        return response, 200
+    return jsonify({"error": "Unauthorized origin"}), 403
+
 
 
 ## LOGIN ##
@@ -149,7 +153,7 @@ def login_options():
 
 ## FORGOT PASSWORD ##
 
-@app.route('/forgot-password', methods=['POST'])
+@app.route('/api/forgot-password', methods=['POST'])
 def forgot_password():
     data = request.get_json()
     email = data.get('email')
@@ -162,8 +166,11 @@ def forgot_password():
     token = serializer.dumps(email, salt="password-reset-salt")
 
     # Create reset URL
+    allowed_origins = ["http://localhost:3000", "https://recipes.dylanastrup.com"]
     origin = request.headers.get("Origin", "http://localhost:3000")
-    reset_url = f"{origin}/reset-password/{token}"  # ✅ Updated for production
+    if origin not in allowed_origins:
+        return jsonify({"error": "Unauthorised request origin"}), 403
+    reset_url = f"{origin}/reset-password/{token}"  
 
     # Send Email
     msg = Message("Password Reset Request", recipients=[email])
@@ -201,7 +208,7 @@ def reset_password(token):
 
 ## HOME ##
 
-@app.route('/')
+@app.route('/api/')
 def home():
     return "Welcome to the Recipe Book!"
 
@@ -215,7 +222,7 @@ def test_route():
 
 ## GET ALL RECIPES ##
 
-@app.route('/recipes', methods=['GET'])
+@app.route('/api/recipes', methods=['GET'])
 @jwt_required()
 def get_recipes():
     current_user = get_jwt_identity()
@@ -306,7 +313,7 @@ def get_recipes():
 
 ## CREATE RECIPES ##
 
-@app.route('/recipes', methods=['POST'])
+@app.route('/api/recipes', methods=['POST'])
 def create_recipe():
     data = request.get_json()  # Get JSON data from request
 
@@ -437,7 +444,7 @@ def create_recipe():
 
 ## UPDATE RECIPE ##
 
-@app.route('/recipes/<int:recipe_id>', methods=['PUT'])
+@app.route('/api/recipes/<int:recipe_id>', methods=['PUT'])
 @jwt_required()
 def update_recipe(recipe_id):
     current_user = get_jwt_identity()
@@ -568,7 +575,7 @@ def update_recipe(recipe_id):
 
 ## DELETE RECIPE ##
 
-@app.route('/recipes/<int:recipe_id>', methods=['DELETE'])
+@app.route('/api/recipes/<int:recipe_id>', methods=['DELETE'])
 @jwt_required()
 def delete_recipe(recipe_id):
     current_user = get_jwt_identity()
@@ -601,7 +608,7 @@ def delete_recipe(recipe_id):
 
 ## GET RECIPE BY ID ##
 
-@app.route('/recipes/<int:recipe_id>', methods=['GET'])
+@app.route('/api/recipes/<int:recipe_id>', methods=['GET'])
 @jwt_required()
 def get_recipe(recipe_id):
     recipe_entry = Recipe.query.get(recipe_id)  # Fetch recipe by ID
@@ -658,7 +665,7 @@ def get_recipe(recipe_id):
 
 ## GET USER ##
 
-@app.route('/users/<int:user_id>', methods=['GET'])
+@app.route('/api/users/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user(user_id):
     current_user = get_jwt_identity()
@@ -677,7 +684,7 @@ def get_user(user_id):
 
 ## GET USERS RECIPES ##
 
-@app.route('/users/<int:user_id>/recipes', methods=['GET'])
+@app.route('/api/users/<int:user_id>/recipes', methods=['GET'])
 @jwt_required()
 def get_user_recipes(user_id):
     current_user = get_jwt_identity()
@@ -703,7 +710,7 @@ def get_user_recipes(user_id):
 
 ## UPDATE USER PROFILE ##
 
-@app.route('/update-profile', methods=['PUT'])
+@app.route('/api/update-profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
     current_user = get_jwt_identity()
