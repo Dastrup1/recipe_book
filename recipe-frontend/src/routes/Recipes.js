@@ -9,10 +9,9 @@ const Recipes = () => {
   const [recipes, setRecipes] = useState([]);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState(""); // ✅ Sort state
+  const [sortBy, setSortBy] = useState("");
   const navigate = useNavigate();
 
-  // ✅ Authentication Check
   const checkAuth = useCallback(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -42,15 +41,17 @@ const Recipes = () => {
     }
   }, [navigate]);
 
-  // ✅ Fetch Recipes with Search and Sorting
   const fetchRecipes = useCallback(async (query = "", sort = "") => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `http://127.0.0.1:5000/recipes?search=${query}&sort=${sort}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_URL}/recipes?search=${query}&sort=${sort}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-
       setRecipes(response.data);
     } catch (err) {
       setError("Failed to fetch recipes.");
@@ -62,18 +63,15 @@ const Recipes = () => {
     fetchRecipes();
   }, [checkAuth, fetchRecipes]);
 
-  // ✅ Handle Search Input
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
-  // ✅ Handle Search Submit
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     fetchRecipes(searchQuery, sortBy);
   };
 
-  // ✅ Handle Sort Selection
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
     fetchRecipes(searchQuery, e.target.value);
@@ -83,7 +81,6 @@ const Recipes = () => {
     <div>
       <h2>All Recipes</h2>
 
-      {/* 🔍 Search Bar */}
       <form onSubmit={handleSearchSubmit}>
         <input
           type="text"
@@ -94,7 +91,6 @@ const Recipes = () => {
         <button type="submit">Search</button>
       </form>
 
-      {/* ⬇️ Sorting Dropdown */}
       <label htmlFor="sort">Sort by:</label>
       <select id="sort" value={sortBy} onChange={handleSortChange}>
         <option value="">Select Sorting Option...</option>
