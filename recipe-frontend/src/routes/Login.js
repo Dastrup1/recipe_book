@@ -25,7 +25,6 @@ const Login = ({ setIsLoggedIn }) => {
       );
 
       const data = response.data;
-      console.log("Login Response:", data);
 
       if (response.status !== 200) {
         throw new Error(data.error || "Login failed");
@@ -33,15 +32,18 @@ const Login = ({ setIsLoggedIn }) => {
 
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("refresh_token", data.refresh_token);
-      console.log("Tokens stored:", localStorage.getItem("token"));
 
       setIsLoggedIn(true);
       navigate("/recipes");
-
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");
       console.error("Login Error:", err);
     }
+  };
+
+  // ✅ Navigate to forgot-password page
+  const handleForgotPassword = () => {
+    navigate("/forgot-password");
   };
 
   return (
@@ -66,12 +68,10 @@ const Login = ({ setIsLoggedIn }) => {
         <button type="submit">Login</button>
       </form>
 
-      {/* 🔐 Forgot Password Link */}
-      <p style={{ marginTop: "10px" }}>
-        <a href="/forgot-password" style={{ color: "blue" }}>
-          Forgot Password?
-        </a>
-      </p>
+      {/* ✅ Add forgot password button */}
+      <button onClick={handleForgotPassword} style={{ marginTop: "10px" }}>
+        Forgot Password?
+      </button>
     </div>
   );
 };
