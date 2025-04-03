@@ -8,6 +8,8 @@ import CreateRecipe from "./routes/CreateRecipe";
 import EditRecipe from "./routes/EditRecipe";
 import Profile from "./routes/Profile";
 import { jwtDecode } from "jwt-decode";
+import ForgotPassword from "./routes/ForgotPassword";
+import ResetPassword from "./routes/ResetPassword";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -115,6 +117,8 @@ function App() {
         <Route path="/create-recipe" element={isLoggedIn ? <CreateRecipe /> : <Navigate to="/login" />} />
         <Route path="/edit-recipe/:id" element={isLoggedIn ? <EditRecipe /> : <Navigate to="/login" />} />
         <Route path="/" element={isLoggedIn ? <Navigate to="/recipes" /> : <Navigate to="/login" />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>
     </div>
   );
