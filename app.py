@@ -126,7 +126,7 @@ def register_options():
 ## LOGIN ##
 
 
-@app.route('/login', methods=['OPTIONS', 'POST'])
+@app.route('/api/login', methods=['OPTIONS', 'POST'])
 @cross_origin(origins=["http://localhost:3000", "https://recipes.dylanastrup.com"], supports_credentials=True)
 def login():
     if request.method == 'OPTIONS':
@@ -150,7 +150,7 @@ def login():
 
 ## FORGOT PASSWORD ##
 
-@app.route('/forgot-password', methods=['POST'])
+@app.route('/api/forgot-password', methods=['POST'])
 def forgot_password():
     data = request.get_json()
     email = data.get('email')
@@ -179,7 +179,7 @@ def forgot_password():
 
 ## RESET PASSWORD ##
 
-@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+@app.route('/api/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
         email = serializer.loads(token, salt="password-reset-salt", max_age=3600)  # Token expires in 1 hour
@@ -219,7 +219,7 @@ def test_route():
 
 ## GET ALL RECIPES ##
 
-@app.route('/recipes', methods=['GET'])
+@app.route('/api/recipes', methods=['GET'])
 @jwt_required()
 def get_recipes():
     current_user = get_jwt_identity()
@@ -310,7 +310,7 @@ def get_recipes():
 
 ## CREATE RECIPES ##
 
-@app.route('/recipes', methods=['POST'])
+@app.route('/api/recipes', methods=['POST'])
 def create_recipe():
     data = request.get_json()  # Get JSON data from request
 
@@ -330,7 +330,7 @@ def create_recipe():
             return jsonify({"error": f"Missing field: {field}"}), 400
 
     try:
-        # ✅ Step 1: Create the Recipe
+        # Step 1: Create the Recipe
         new_recipe = Recipe(
             user_id=data['user_id'],
             recipe_name=data['recipe_name'],
@@ -342,32 +342,32 @@ def create_recipe():
             difficulty=data['difficulty']
         )
         db.session.add(new_recipe)
-        db.session.flush()  # ✅ Allows us to access `new_recipe.id` before commit
+        db.session.flush()  # Allows us to access `new_recipe.id` before commit
 
-        # ✅ Step 2: Add Ingredients and Measurements
+        # Step 2: Add Ingredients and Measurements
         for ingredient in data['ingredients']:
             ingredient_name = ingredient.get('ingredient_name')
-            measurement_name = ingredient.get('measurement_name')  # ✅ Fixed to match the database column name
+            measurement_name = ingredient.get('measurement_name')  # Fixed to match the database column name
             quantity = ingredient.get('amount')
 
             if not ingredient_name or not quantity:
                 return jsonify({"error": "Each ingredient must have a name and quantity"}), 400
 
-            # ✅ Check if the ingredient exists, if not, create it
+            # Check if the ingredient exists, if not, create it
             existing_ingredient = Ingredient.query.filter_by(ingredient_name=ingredient_name).first()
             if not existing_ingredient:
                 existing_ingredient = Ingredient(ingredient_name=ingredient_name)
                 db.session.add(existing_ingredient)
-                db.session.flush()  # ✅ Get the new ID before commit
+                db.session.flush()  # Get the new ID before commit
 
-            # ✅ Check if the measurement exists, if not, create it
+            # Check if the measurement exists, if not, create it
             existing_measurement = Measurement.query.filter_by(measurement_name=measurement_name).first()
             if not existing_measurement and measurement_name:
                 existing_measurement = Measurement(measurement_name=measurement_name)
                 db.session.add(existing_measurement)
-                db.session.flush()  # ✅ Get the new ID before commit
+                db.session.flush()  # Get the new ID before commit
 
-            # ✅ Create RecipeIngredient entry
+            # Create RecipeIngredient entry
             recipe_ingredient = RecipeIngredient(
                 recipe_id=new_recipe.id,
                 ingredient_id=existing_ingredient.id,
@@ -376,7 +376,7 @@ def create_recipe():
             )
             db.session.add(recipe_ingredient)
 
-        # ✅ Step 3: Add Recipe Steps
+        # Step 3: Add Recipe Steps
         for step in data['steps']:
             step_number = step.get('step_number')
             step_description = step.get('instruction')
@@ -391,7 +391,7 @@ def create_recipe():
             )
             db.session.add(recipe_step)
 
-        # ✅ Step 4: Add Recipe Images
+        # Step 4: Add Recipe Images
         for image_url in data['images']:
             if not image_url:
                 return jsonify({"error": "Image URL cannot be empty"}), 400
@@ -402,9 +402,9 @@ def create_recipe():
             )
             db.session.add(recipe_image)
 
-        db.session.commit()  # ✅ Single commit at the end to ensure transaction safety
+        db.session.commit()  # Single commit at the end to ensure transaction safety
 
-        # ✅ Return response
+        # Return response
         return jsonify({
             "id": new_recipe.id,
             "recipe_name": new_recipe.recipe_name,
@@ -419,7 +419,7 @@ def create_recipe():
                 {
                     "ingredient_name": ingredient["ingredient_name"],
                     "amount": ingredient["amount"],
-                    "measurement_unit": ingredient.get("measurement_name", "N/A")  # ✅ Ensure key matches the request data
+                    "measurement_unit": ingredient.get("measurement_name", "N/A")  # Ensure key matches the request data
                 } for ingredient in data["ingredients"]
             ],
             "steps": [
@@ -431,17 +431,17 @@ def create_recipe():
             "images": [
                 {"image_url": image_url} for image_url in data["images"]
             ]
-        }), 201  # ✅ 201 means "Created Successfully"
+        }), 201  # 201 means "Created Successfully"
 
     except Exception as e:
-        db.session.rollback()  # ✅ Rollback in case of any errors
-        print("❌ Database Error:", str(e))  # Debugging
+        db.session.rollback()  # Rollback in case of any errors
+        print(" Database Error:", str(e))  # Debugging
         return jsonify({"error": str(e)}), 500  # Return server error if something goes wrong
 
 
 ## UPDATE RECIPE ##
 
-@app.route('/recipes/<int:recipe_id>', methods=['PUT'])
+@app.route('/api/recipes/<int:recipe_id>', methods=['PUT'])
 @jwt_required()
 def update_recipe(recipe_id):
     current_user = get_jwt_identity()
@@ -459,7 +459,7 @@ def update_recipe(recipe_id):
     try:
         # Step 1: Update Basic Recipe Information
         recipe_entry.recipe_name = data.get('recipe_name', recipe_entry.recipe_name)
-        recipe_entry.recipe_description = data.get('recipe_description', recipe_entry.recipe_description)  # ✅ Fixed naming
+        recipe_entry.recipe_description = data.get('recipe_description', recipe_entry.recipe_description)  # Fixed naming
         recipe_entry.cuisine = data.get('cuisine', recipe_entry.cuisine)
         recipe_entry.prep_time = data.get('prep_time', recipe_entry.prep_time)
         recipe_entry.cook_time = data.get('cook_time', recipe_entry.cook_time)
@@ -472,7 +472,7 @@ def update_recipe(recipe_id):
 
             for ingredient in data['ingredients']:
                 ingredient_name = ingredient.get('ingredient_name')
-                measurement_name = ingredient.get('measurement_name')  # ✅ Fixed naming
+                measurement_name = ingredient.get('measurement_name')  # Fixed naming
                 quantity = ingredient.get('amount')
 
                 if not ingredient_name or not quantity:
@@ -506,7 +506,7 @@ def update_recipe(recipe_id):
 
         # Step 3: Update Steps
         if 'steps' in data:
-            RecipeStep.query.filter_by(recipe_id=recipe_id).delete()  # ✅ Replacing steps entirely
+            RecipeStep.query.filter_by(recipe_id=recipe_id).delete()  # Replacing steps entirely
             for step in data['steps']:
                 step_number = step.get('step_number')
                 step_description = step.get('instruction')
@@ -523,7 +523,7 @@ def update_recipe(recipe_id):
 
         # Step 4: Update Images
         if 'images' in data:
-            Image.query.filter_by(recipe_id=recipe_id).delete()  # ✅ Removing old images
+            Image.query.filter_by(recipe_id=recipe_id).delete()  # Removing old images
             for image_url in data['images']:
                 if not image_url:
                     return jsonify({"error": "Image URL cannot be empty"}), 400
@@ -534,13 +534,13 @@ def update_recipe(recipe_id):
                 )
                 db.session.add(recipe_image)
 
-        db.session.commit()  # ✅ Committing all changes
+        db.session.commit()  # Committing all changes
 
         # Construct the response
         return jsonify({
             "id": recipe_entry.id,
             "recipe_name": recipe_entry.recipe_name,
-            "description": recipe_entry.recipe_description,  # ✅ Fixed naming
+            "description": recipe_entry.recipe_description,  # Fixed naming
             "cuisine": recipe_entry.cuisine,
             "prep_time": recipe_entry.prep_time,
             "cook_time": recipe_entry.cook_time,
@@ -566,13 +566,13 @@ def update_recipe(recipe_id):
         }), 200  # 200 means "OK - Successfully Updated"
 
     except Exception as e:
-        db.session.rollback()  # ✅ Rollback on error
+        db.session.rollback()  # Rollback on error
         return jsonify({"error": str(e)}), 500  # Return server error if something goes wrong
 
 
 ## DELETE RECIPE ##
 
-@app.route('/recipes/<int:recipe_id>', methods=['DELETE'])
+@app.route('/api/recipes/<int:recipe_id>', methods=['DELETE'])
 @jwt_required()
 def delete_recipe(recipe_id):
     current_user = get_jwt_identity()
@@ -605,7 +605,7 @@ def delete_recipe(recipe_id):
 
 ## GET RECIPE BY ID ##
 
-@app.route('/recipes/<int:recipe_id>', methods=['GET'])
+@app.route('/api/recipes/<int:recipe_id>', methods=['GET'])
 @jwt_required()
 def get_recipe(recipe_id):
     recipe_entry = Recipe.query.get(recipe_id)  # Fetch recipe by ID
@@ -662,7 +662,7 @@ def get_recipe(recipe_id):
 
 ## GET USER ##
 
-@app.route('/users/<int:user_id>', methods=['GET'])
+@app.route('/api/users/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user(user_id):
     current_user = get_jwt_identity()
@@ -681,7 +681,7 @@ def get_user(user_id):
 
 ## GET USERS RECIPES ##
 
-@app.route('/users/<int:user_id>/recipes', methods=['GET'])
+@app.route('/api/users/<int:user_id>/recipes', methods=['GET'])
 @jwt_required()
 def get_user_recipes(user_id):
     current_user = get_jwt_identity()
@@ -707,7 +707,7 @@ def get_user_recipes(user_id):
 
 ## UPDATE USER PROFILE ##
 
-@app.route('/update-profile', methods=['PUT'])
+@app.route('/api/update-profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
     current_user = get_jwt_identity()

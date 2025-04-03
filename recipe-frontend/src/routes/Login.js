@@ -16,31 +16,26 @@ const Login = ({ setIsLoggedIn }) => {
 
     try {
       const response = await axios.post(
-        `${API_URL}/api/login`,
-        { username, password }, // ✅ Send credentials properly
+        `${API_URL}/login`,
+        { username, password },
         {
           headers: { "Content-Type": "application/json" },
-          withCredentials: true, // ✅ Ensures cookies & tokens are handled properly
+          withCredentials: true,
         }
       );
 
       const data = response.data;
       console.log("Login Response:", data);
 
-      // ✅ Check if login was successful
       if (response.status !== 200) {
         throw new Error(data.error || "Login failed");
       }
 
-      // ✅ Store tokens in localStorage
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("refresh_token", data.refresh_token);
       console.log("Tokens stored:", localStorage.getItem("token"));
 
-      // ✅ Update authentication state
       setIsLoggedIn(true);
-
-      // ✅ Redirect to recipes page
       navigate("/recipes");
 
     } catch (err) {
@@ -70,6 +65,13 @@ const Login = ({ setIsLoggedIn }) => {
         />
         <button type="submit">Login</button>
       </form>
+
+      {/* 🔐 Forgot Password Link */}
+      <p style={{ marginTop: "10px" }}>
+        <a href="/forgot-password" style={{ color: "blue" }}>
+          Forgot Password?
+        </a>
+      </p>
     </div>
   );
 };
