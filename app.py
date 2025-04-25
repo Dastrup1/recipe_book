@@ -62,7 +62,7 @@ serializer = URLSafeTimedSerializer(app.config['JWT_SECRET_KEY'])
 
 ## REGISTER ##
 
-@app.route('/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
 
@@ -109,7 +109,7 @@ def register():
 
 ## REGISTER OPTIONS ##
 
-@app.route('/register', methods=['OPTIONS'])
+@app.route('/api/register', methods=['OPTIONS'])
 def register_options():
     origin = request.headers.get('Origin', '')
     if origin in ["http://localhost:3000", "https://recipes.dylanastrup.com"]:
