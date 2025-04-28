@@ -143,7 +143,17 @@ const RecipeDetail = () => {
           <Grid container spacing={2}>
             {recipe.images.map((imageUrl, index) => (
               <Grid item key={index}>
-                <img src={imageUrl} alt="Recipe" style={{ width: "200px", borderRadius: "10px" }} />
+                <img 
+                  src={imageUrl} 
+                  alt="Recipe" 
+                  style={{ 
+                    width: "200px", 
+                    height: "150px",
+                    objectFit: "cover",
+                    borderRadius: "10px",
+                    boxShadow: "o 4px 8px rgba(0, 0, 0, 0.1)"
+                     }}
+                 />
               </Grid>
             ))}
           </Grid>

@@ -1,32 +1,66 @@
 import React from 'react';
-import { Card, CardContent, CardMedia, Typography, Button, CardActions } from '@mui/material';
+import { Card, CardContent, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 const RecipeCard = ({ recipe }) => {
   const navigate = useNavigate();
-  const defaultImage = "https://via.placeholder.com/300x200.png?text=No+Image";
+  const defaultImage = "/no-image.png";
+
+  const imageToShow = (recipe.images && recipe.images.length > 0) ? recipe.images[0] : defaultImage;
 
   return (
-    <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
-      <CardMedia
+    <Card 
+      onClick={() => navigate(`/recipes/${recipe.id}`)}  // ✅ Whole card clickable
+      sx={{ 
+        borderRadius: 3, 
+        boxShadow: 3, 
+        width: 250, 
+        cursor: 'pointer',
+        transition: "transform 0.2s, box-shadow 0.2s",
+        '&:hover': { 
+          transform: "scale(1.02)", 
+          boxShadow: 6 
+        },
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
+      {/* Image */}
+      <Box
         component="img"
-        height="200"
-        image={recipe.images[0] || defaultImage}
+        src={imageToShow}
         alt={recipe.recipe_name}
+        onError={(e) => { e.target.src = defaultImage; }}
+        sx={{
+          width: '100%',
+          height: 150,
+          objectFit: 'cover',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12
+        }}
       />
-      <CardContent>
-        <Typography variant="h5" sx={{ fontFamily: "'Patrick Hand', cursive" }}>
+      
+      {/* Content */}
+      <CardContent sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" sx={{ fontFamily: "'Patrick Hand', cursive" }}>
           {recipe.recipe_name}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {recipe.description.length > 100 ? recipe.description.substring(0, 100) + "..." : recipe.description}
+        <Typography 
+          variant="body2" 
+          color="text.secondary"
+          sx={{ 
+            maxHeight: 40,     
+            overflow: 'hidden' 
+          }}
+        >
+          {recipe.description.length > 60 
+            ? recipe.description.substring(0, 60) + "..." 
+            : recipe.description}
+        </Typography>
+        <Typography variant="body2" sx={{ marginTop: 1 }}>
+          <strong>Total Time:</strong> {recipe.prep_time + recipe.cook_time} mins
         </Typography>
       </CardContent>
-      <CardActions>
-        <Button size="small" sx={{ color: '#D28415' }} onClick={() => navigate(`/recipes/${recipe.id}`)}>
-          View Recipe
-        </Button>
-      </CardActions>
     </Card>
   );
 };

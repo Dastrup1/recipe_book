@@ -5,18 +5,18 @@ import { jwtDecode } from "jwt-decode";
 import {
   Container,
   Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Typography,
-  Button,
   TextField,
   Select,
   MenuItem,
   InputLabel,
   FormControl,
+  Button,
+  Typography,
   Alert
 } from "@mui/material";
+
+// ✅ Import your RecipeCard component
+import RecipeCard from "../components/RecipeCard";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -132,35 +132,7 @@ const Recipes = () => {
         <Grid container spacing={3}>
           {recipes.map((recipe) => (
             <Grid item xs={12} sm={6} md={4} key={recipe.id}>
-              <Card 
-                sx={{ 
-                  borderRadius: 3, 
-                  backgroundColor: "#ffffff",
-                  transition: "transform 0.2s",
-                  '&:hover': { transform: "scale(1.03)", boxShadow: 3 }
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h6" sx={{ fontFamily: "'Patrick Hand', cursive", color: '#477491' }}>
-                    {recipe.recipe_name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {recipe.description}
-                  </Typography>
-                  <Typography variant="body2" sx={{ marginTop: 1 }}>
-                    <strong>Total Time:</strong> {recipe.total_time} mins
-                  </Typography>
-                </CardContent>
-                <CardActions>
-                  <Button 
-                    size="small" 
-                    onClick={() => navigate(`/recipes/${recipe.id}`)} 
-                    sx={{ color: '#D28415', '&:hover': { color: '#b36b10' } }}
-                  >
-                    View Recipe
-                  </Button>
-                </CardActions>
-              </Card>
+              <RecipeCard recipe={recipe} />
             </Grid>
           ))}
         </Grid>
