@@ -14,54 +14,69 @@ const CreateRecipe = () => {
     cook_time: "",
     servings: "",
     difficulty: "",
-    ingredients: [{ ingredient_name: "", amount: "", measurement_name: "" }],
-    steps: [{ step_number: 1, instruction: "" }],
-    images: [""],
+    ingredients: [],
+    steps: [],
+    images: [],
   });
 
+  const [errors, setErrors] = useState({});
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Retrieve user_id from JWT token
   const getUserId = () => {
     const token = localStorage.getItem("token");
     if (!token) return null;
     try {
       const decodedToken = jwtDecode(token);
-      return decodedToken.sub; // Assuming 'sub' contains user_id
+      return decodedToken.sub;
     } catch (error) {
       console.error("Invalid token:", error);
       return null;
     }
   };
 
-  // Handle Input Change
   const handleChange = (e) => {
     setRecipeData({ ...recipeData, [e.target.name]: e.target.value });
   };
 
-  // Handle Ingredient Change
   const handleIngredientChange = (index, field, value) => {
     const updatedIngredients = [...recipeData.ingredients];
     updatedIngredients[index][field] = value;
     setRecipeData({ ...recipeData, ingredients: updatedIngredients });
+
+    if (field === "ingredient_name" && value.trim() === "") {
+      setErrors((prev) => ({ ...prev, [`ingredient_${index}`]: "Ingredient name cannot be empty" }));
+    } else {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[`ingredient_${index}`];
+        return newErrors;
+      });
+    }
   };
 
-  // Handle Step Change
   const handleStepChange = (index, value) => {
     const updatedSteps = [...recipeData.steps];
     updatedSteps[index].instruction = value;
     setRecipeData({ ...recipeData, steps: updatedSteps });
+
+    if (value.trim() === "") {
+      setErrors((prev) => ({ ...prev, [`step_${index}`]: "Step description cannot be empty" }));
+    } else {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[`step_${index}`];
+        return newErrors;
+      });
+    }
   };
 
-  // Handle Image Change
   const handleImageChange = (index, value) => {
     const updatedImages = [...recipeData.images];
     updatedImages[index] = value;
     setRecipeData({ ...recipeData, images: updatedImages });
   };
 
-  // Add Ingredient
   const addIngredientField = () => {
     setRecipeData({
       ...recipeData,
@@ -69,13 +84,11 @@ const CreateRecipe = () => {
     });
   };
 
-  // Delete Ingredient
   const deleteIngredient = (index) => {
     const updatedIngredients = recipeData.ingredients.filter((_, i) => i !== index);
     setRecipeData({ ...recipeData, ingredients: updatedIngredients });
   };
 
-  // Add Step
   const addStepField = () => {
     setRecipeData({
       ...recipeData,
@@ -83,13 +96,11 @@ const CreateRecipe = () => {
     });
   };
 
-  // Delete Step
   const deleteStep = (index) => {
     const updatedSteps = recipeData.steps.filter((_, i) => i !== index);
     setRecipeData({ ...recipeData, steps: updatedSteps });
   };
 
-  // Add Image
   const addImageField = () => {
     setRecipeData({
       ...recipeData,
@@ -97,19 +108,16 @@ const CreateRecipe = () => {
     });
   };
 
-  // Delete Image
   const deleteImage = (index) => {
     const updatedImages = recipeData.images.filter((_, i) => i !== index);
     setRecipeData({ ...recipeData, images: updatedImages });
   };
 
-  // Submit Form
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     const token = localStorage.getItem("token");
 
-    // Add user_id dynamically
     const userId = getUserId();
     if (!userId) {
       setError("User not authenticated. Please log in again.");
@@ -131,7 +139,6 @@ const CreateRecipe = () => {
       );
 
       if (response.status === 201) {
-        alert("Recipe Created Successfully!");
         navigate("/recipes");
       }
     } catch (err) {
@@ -155,10 +162,11 @@ const CreateRecipe = () => {
         <h3>Ingredients</h3>
         {recipeData.ingredients.map((ingredient, index) => (
           <div key={index}>
-            <input type="text" placeholder="Ingredient Name" onChange={(e) => handleIngredientChange(index, "ingredient_name", e.target.value)} required />
-            <input type="number" placeholder="Amount" onChange={(e) => handleIngredientChange(index, "amount", e.target.value)} required />
-            <input type="text" placeholder="Measurement (e.g., cups, tbsp)" onChange={(e) => handleIngredientChange(index, "measurement_name", e.target.value)} required />
+            <input type="text" placeholder="Ingredient Name" value={ingredient.ingredient_name} onChange={(e) => handleIngredientChange(index, "ingredient_name", e.target.value)} required />
+            <input type="number" placeholder="Amount" value={ingredient.amount} onChange={(e) => handleIngredientChange(index, "amount", e.target.value)} required />
+            <input type="text" placeholder="Measurement (e.g., cups)" value={ingredient.measurement_name} onChange={(e) => handleIngredientChange(index, "measurement_name", e.target.value)} required />
             <button type="button" onClick={() => deleteIngredient(index)}>Delete</button>
+            {errors[`ingredient_${index}`] && <p style={{ color: "red" }}>{errors[`ingredient_${index}`]}</p>}
           </div>
         ))}
         <button type="button" onClick={addIngredientField}>+ Add Ingredient</button>
@@ -166,8 +174,9 @@ const CreateRecipe = () => {
         <h3>Steps</h3>
         {recipeData.steps.map((step, index) => (
           <div key={index}>
-            <textarea placeholder={`Step ${index + 1}`} onChange={(e) => handleStepChange(index, e.target.value)} required />
+            <textarea placeholder={`Step ${index + 1}`} value={step.instruction} onChange={(e) => handleStepChange(index, e.target.value)} required />
             <button type="button" onClick={() => deleteStep(index)}>Delete</button>
+            {errors[`step_${index}`] && <p style={{ color: "red" }}>{errors[`step_${index}`]}</p>}
           </div>
         ))}
         <button type="button" onClick={addStepField}>+ Add Step</button>
@@ -175,7 +184,7 @@ const CreateRecipe = () => {
         <h3>Images</h3>
         {recipeData.images.map((image, index) => (
           <div key={index}>
-            <input type="text" placeholder="Image URL" onChange={(e) => handleImageChange(index, e.target.value)} required />
+            <input type="text" placeholder="Image URL" value={image} onChange={(e) => handleImageChange(index, e.target.value)} />
             <button type="button" onClick={() => deleteImage(index)}>Delete</button>
           </div>
         ))}

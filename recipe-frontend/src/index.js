@@ -4,13 +4,19 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from "react-router-dom";
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import theme from './theme';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <BrowserRouter> {/* ✅ Move BrowserRouter here */}
-      <App />
-    </BrowserRouter>
+    <ThemeProvider theme={theme}>   {/* Apply MUI Theme */}
+      <CssBaseline />               {/* Normalize styles */}
+      <BrowserRouter>               {/* Routing */}
+        <App />
+      </BrowserRouter>
+    </ThemeProvider>
   </React.StrictMode>
 );
 

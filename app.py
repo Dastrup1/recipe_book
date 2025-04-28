@@ -15,7 +15,7 @@ from sqlalchemy import String, cast
 
 app = Flask(__name__)
 
-CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "https://recipes.dylanastrup.com"]}}, supports_credentials=True)
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://recipes.dylanastrup.com"]}}, supports_credentials=True)
 
 # Database Configuration
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -447,100 +447,104 @@ def update_recipe(recipe_id):
     current_user = get_jwt_identity()
     data = request.get_json()
 
-    # Fetch the recipe by ID
     recipe_entry = Recipe.query.get(recipe_id)
     if not recipe_entry:
         return jsonify({"error": "Recipe not found"}), 404
 
-    # Ensure the user is authorized to edit this recipe
     if str(recipe_entry.user_id) != str(current_user):
         return jsonify({"error": "Unauthorized to edit this recipe"}), 403
 
     try:
-        # Step 1: Update Basic Recipe Information
+        # Update Basic Recipe Information
         recipe_entry.recipe_name = data.get('recipe_name', recipe_entry.recipe_name)
-        recipe_entry.recipe_description = data.get('recipe_description', recipe_entry.recipe_description)  # Fixed naming
+        recipe_entry.recipe_description = data.get('recipe_description', recipe_entry.recipe_description)
         recipe_entry.cuisine = data.get('cuisine', recipe_entry.cuisine)
         recipe_entry.prep_time = data.get('prep_time', recipe_entry.prep_time)
         recipe_entry.cook_time = data.get('cook_time', recipe_entry.cook_time)
         recipe_entry.servings = data.get('servings', recipe_entry.servings)
         recipe_entry.difficulty = data.get('difficulty', recipe_entry.difficulty)
 
-        # Step 2: Update Ingredients (Avoid Full Delete)
+        # === Optimized Ingredients Handling ===
         if 'ingredients' in data:
-            existing_ingredients = {ri.ingredient_id: ri for ri in recipe_entry.recipe_ingredient}
+            incoming_ingredients = []
+            for ing in data['ingredients']:
+                name = ing.get('ingredient_name')
+                quantity = ing.get('amount')
+                measurement_name = ing.get('measurement_name')
 
-            for ingredient in data['ingredients']:
-                ingredient_name = ingredient.get('ingredient_name')
-                measurement_name = ingredient.get('measurement_name')  # Fixed naming
-                quantity = ingredient.get('amount')
-
-                if not ingredient_name or not quantity:
+                if not name or not quantity:
                     return jsonify({"error": "Each ingredient must have a name and quantity"}), 400
 
-                # Fetch or Create Ingredient
-                existing_ingredient = Ingredient.query.filter_by(ingredient_name=ingredient_name).first()
-                if not existing_ingredient:
-                    existing_ingredient = Ingredient(ingredient_name=ingredient_name)
-                    db.session.add(existing_ingredient)
+                ingredient_obj = Ingredient.query.filter_by(ingredient_name=name).first()
+                if not ingredient_obj:
+                    ingredient_obj = Ingredient(ingredient_name=name)
+                    db.session.add(ingredient_obj)
                     db.session.flush()
 
-                # Fetch or Create Measurement
-                existing_measurement = Measurement.query.filter_by(measurement_name=measurement_name).first()
-                if not existing_measurement:
-                    existing_measurement = Measurement(measurement_name=measurement_name)
-                    db.session.add(existing_measurement)
-                    db.session.flush()
+                measurement_obj = None
+                if measurement_name:
+                    measurement_obj = Measurement.query.filter_by(measurement_name=measurement_name).first()
+                    if not measurement_obj:
+                        measurement_obj = Measurement(measurement_name=measurement_name)
+                        db.session.add(measurement_obj)
+                        db.session.flush()
 
-                # Update or Add RecipeIngredient
-                if existing_ingredient.id in existing_ingredients:
-                    existing_ingredients[existing_ingredient.id].ingredient_quantity = quantity
-                else:
-                    new_ingredient = RecipeIngredient(
-                        recipe_id=recipe_id,
-                        ingredient_id=existing_ingredient.id,
-                        measurement_id=existing_measurement.id if existing_measurement else None,
-                        ingredient_quantity=quantity
-                    )
-                    db.session.add(new_ingredient)
+                incoming_ingredients.append({
+                    "ingredient_id": ingredient_obj.id,
+                    "measurement_id": measurement_obj.id if measurement_obj else None,
+                    "quantity": quantity
+                })
 
-        # Step 3: Update Steps
+            # Remove old ingredients
+            RecipeIngredient.query.filter_by(recipe_id=recipe_id).delete()
+            for ing in incoming_ingredients:
+                db.session.add(RecipeIngredient(
+                    recipe_id=recipe_id,
+                    ingredient_id=ing["ingredient_id"],
+                    measurement_id=ing["measurement_id"],
+                    ingredient_quantity=ing["quantity"]
+                ))
+
+        # === Optimized Steps Handling ===
         if 'steps' in data:
-            RecipeStep.query.filter_by(recipe_id=recipe_id).delete()  # Replacing steps entirely
-            for step in data['steps']:
-                step_number = step.get('step_number')
-                step_description = step.get('instruction')
+            incoming_steps = {step['step_number']: step['instruction'] for step in data['steps']}
+            existing_steps = {s.step_number: s for s in RecipeStep.query.filter_by(recipe_id=recipe_id).all()}
 
-                if not step_number or not step_description:
-                    return jsonify({"error": "Each step must have a step_number and instruction"}), 400
+            for step_number, instruction in incoming_steps.items():
+                if step_number in existing_steps:
+                    existing_steps[step_number].step_description = instruction
+                else:
+                    db.session.add(RecipeStep(
+                        recipe_id=recipe_id,
+                        step_number=step_number,
+                        step_description=instruction
+                    ))
 
-                recipe_step = RecipeStep(
-                    recipe_id=recipe_id,
-                    step_number=step_number,
-                    step_description=step_description
-                )
-                db.session.add(recipe_step)
+            to_delete = set(existing_steps.keys()) - set(incoming_steps.keys())
+            if to_delete:
+                RecipeStep.query.filter(
+                    RecipeStep.recipe_id == recipe_id,
+                    RecipeStep.step_number.in_(to_delete)
+                ).delete(synchronize_session=False)
 
-        # Step 4: Update Images
+        # === Optimized Images Handling ===
         if 'images' in data:
-            Image.query.filter_by(recipe_id=recipe_id).delete()  # Removing old images
-            for image_url in data['images']:
-                if not image_url:
-                    return jsonify({"error": "Image URL cannot be empty"}), 400
+            incoming_images = set(data['images'])
+            existing_images = {img.image_url for img in Image.query.filter_by(recipe_id=recipe_id).all()}
 
-                recipe_image = Image(
-                    recipe_id=recipe_id,
-                    image_url=image_url
-                )
-                db.session.add(recipe_image)
+            for img_url in incoming_images - existing_images:
+                db.session.add(Image(recipe_id=recipe_id, image_url=img_url))
 
-        db.session.commit()  # Committing all changes
+            for img_url in existing_images - incoming_images:
+                Image.query.filter_by(recipe_id=recipe_id, image_url=img_url).delete()
 
-        # Construct the response
+        db.session.commit()
+
+        # Response
         return jsonify({
             "id": recipe_entry.id,
             "recipe_name": recipe_entry.recipe_name,
-            "description": recipe_entry.recipe_description,  # Fixed naming
+            "description": recipe_entry.recipe_description,
             "cuisine": recipe_entry.cuisine,
             "prep_time": recipe_entry.prep_time,
             "cook_time": recipe_entry.cook_time,
@@ -563,11 +567,12 @@ def update_recipe(recipe_id):
             "images": [
                 {"image_url": image.image_url} for image in recipe_entry.image
             ]
-        }), 200  # 200 means "OK - Successfully Updated"
+        }), 200
 
     except Exception as e:
-        db.session.rollback()  # Rollback on error
-        return jsonify({"error": str(e)}), 500  # Return server error if something goes wrong
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 
 ## DELETE RECIPE ##

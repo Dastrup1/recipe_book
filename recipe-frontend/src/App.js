@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate, Link } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./routes/Login";
 import Register from "./routes/Register";
 import Recipes from "./routes/Recipes";
@@ -7,9 +7,10 @@ import RecipeDetail from "./routes/RecipeDetail";
 import CreateRecipe from "./routes/CreateRecipe";
 import EditRecipe from "./routes/EditRecipe";
 import Profile from "./routes/Profile";
-import { jwtDecode } from "jwt-decode";
 import ForgotPassword from "./routes/ForgotPassword";
 import ResetPassword from "./routes/ResetPassword";
+import Navbar from "./components/Navbar";   // Added Navbar import
+import { jwtDecode } from "jwt-decode";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -89,24 +90,7 @@ function App() {
 
   return (
     <div>
-      <h1>Welcome to the Recipe Book</h1>
-      <nav>
-        <ul>
-          {!isLoggedIn ? (
-            <>
-              <li><Link to="/login">Login</Link></li>
-              <li><Link to="/register">Register</Link></li>
-            </>
-          ) : (
-            <>
-              <li><Link to="/recipes">Recipes</Link></li>
-              <li><Link to="/create-recipe">Create Recipe</Link></li>
-              <li><Link to="/profile">Profile</Link></li>
-              <li><button onClick={handleLogout}>Logout</button></li>
-            </>
-          )}
-        </ul>
-      </nav>
+      <Navbar isLoggedIn={isLoggedIn} handleLogout={handleLogout} />
 
       <Routes>
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />

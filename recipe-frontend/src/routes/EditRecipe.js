@@ -5,7 +5,7 @@ import axios from "axios";
 const API_URL = process.env.REACT_APP_API_URL;
 
 const EditRecipe = () => {
-  const { id } = useParams(); // Get recipe ID from URL
+  const { id } = useParams();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -23,6 +23,7 @@ const EditRecipe = () => {
   });
 
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -31,7 +32,6 @@ const EditRecipe = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // ✅ Ensure all fields are populated correctly
         setRecipeData({
           recipe_name: response.data.recipe_name,
           recipe_description: response.data.description,
@@ -66,12 +66,32 @@ const EditRecipe = () => {
     const updatedIngredients = [...recipeData.ingredients];
     updatedIngredients[index][field] = value;
     setRecipeData({ ...recipeData, ingredients: updatedIngredients });
+
+    if (field === "ingredient_name" && value.trim() === "") {
+      setFieldErrors((prev) => ({ ...prev, [`ingredient_${index}`]: "Ingredient name cannot be empty" }));
+    } else {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[`ingredient_${index}`];
+        return newErrors;
+      });
+    }
   };
 
   const handleStepChange = (index, value) => {
     const updatedSteps = [...recipeData.steps];
     updatedSteps[index].instruction = value;
     setRecipeData({ ...recipeData, steps: updatedSteps });
+
+    if (value.trim() === "") {
+      setFieldErrors((prev) => ({ ...prev, [`step_${index}`]: "Step description cannot be empty" }));
+    } else {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[`step_${index}`];
+        return newErrors;
+      });
+    }
   };
 
   const handleImageChange = (index, value) => {
@@ -126,7 +146,6 @@ const EditRecipe = () => {
         },
       });
 
-      alert("Recipe updated successfully!");
       navigate(`/recipes/${id}`);
     } catch (err) {
       setError("Failed to update recipe.");
@@ -153,6 +172,7 @@ const EditRecipe = () => {
             <input type="number" placeholder="Amount" value={ingredient.amount} onChange={(e) => handleIngredientChange(index, "amount", e.target.value)} required />
             <input type="text" placeholder="Measurement (e.g., cups, tbsp)" value={ingredient.measurement_name} onChange={(e) => handleIngredientChange(index, "measurement_name", e.target.value)} required />
             <button type="button" onClick={() => deleteIngredient(index)}>Delete</button>
+            {fieldErrors[`ingredient_${index}`] && <p style={{ color: "red" }}>{fieldErrors[`ingredient_${index}`]}</p>}
           </div>
         ))}
         <button type="button" onClick={addIngredientField}>+ Add Ingredient</button>
@@ -162,6 +182,7 @@ const EditRecipe = () => {
           <div key={index}>
             <textarea placeholder={`Step ${index + 1}`} value={step.instruction} onChange={(e) => handleStepChange(index, e.target.value)} required />
             <button type="button" onClick={() => deleteStep(index)}>Delete</button>
+            {fieldErrors[`step_${index}`] && <p style={{ color: "red" }}>{fieldErrors[`step_${index}`]}</p>}
           </div>
         ))}
         <button type="button" onClick={addStepField}>+ Add Step</button>
@@ -169,14 +190,14 @@ const EditRecipe = () => {
         <h3>Images</h3>
         {recipeData.images.map((image, index) => (
           <div key={index}>
-            <input type="text" placeholder="Image URL" value={image} onChange={(e) => handleImageChange(index, e.target.value)} required />
+            <input type="text" placeholder="Image URL" value={image} onChange={(e) => handleImageChange(index, e.target.value)} />
             <button type="button" onClick={() => deleteImage(index)}>Delete</button>
           </div>
         ))}
         <button type="button" onClick={addImageField}>+ Add Image</button>
 
         <button type="submit">Update Recipe</button>
-        <button type="button" onClick={() => navigate(`/recipes/${id}`)}>Cancel & Go Back</button> {/* ✅ New Back Button */}
+        <button type="button" onClick={() => navigate(`/recipes/${id}`)}>Cancel & Go Back</button>
       </form>
     </div>
   );
