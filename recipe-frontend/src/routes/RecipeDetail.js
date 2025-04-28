@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-import { Card, CardContent, Typography, Button, Grid } from "@mui/material";
+import { Card, CardContent, Typography, Button, Grid, Box } from "@mui/material";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -83,114 +83,134 @@ const RecipeDetail = () => {
   const currentUser = checkAuth();
   const isOwner = currentUser && parseInt(currentUser) === recipe.user_id;
 
+  const imageToShow = (recipe.images && recipe.images.length > 0) 
+    ? recipe.images[0] 
+    : "/no-image.png";
+
   return (
-    <Card sx={{ maxWidth: 800, margin: "20px auto", padding: 2, borderRadius: 3, boxShadow: 3 }}>
-      <CardContent>
-        <Typography variant="h4" gutterBottom sx={{ fontFamily: "'Patrick Hand', cursive" }}>
-          {recipe.recipe_name}
-        </Typography>
-
-        {recipe.username && (
-          <Typography variant="subtitle1" color="textSecondary">
-            Created by: {recipe.username}
+    <>
+      {/* 🔹 Banner Image */}
+      <Box
+        sx={{
+          height: 300,
+          backgroundImage: `url(${imageToShow})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          position: 'relative',
+          borderBottomLeftRadius: 8,
+          borderBottomRightRadius: 8,
+          boxShadow: 3
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 8
+          }}
+        >
+          <Typography 
+            variant="h3" 
+            sx={{ 
+              color: 'white', 
+              fontFamily: "'Patrick Hand', cursive",
+              textShadow: '2px 2px 4px rgba(0,0,0,0.7)'
+            }}
+          >
+            {recipe.recipe_name}
           </Typography>
-        )}
+        </Box>
+      </Box>
 
-        <Typography variant="body1" paragraph><strong>Description:</strong> {recipe.description}</Typography>
-        <Typography variant="body1"><strong>Cuisine:</strong> {recipe.cuisine}</Typography>
-        <Typography variant="body1"><strong>Prep Time:</strong> {recipe.prep_time} mins</Typography>
-        <Typography variant="body1"><strong>Cook Time:</strong> {recipe.cook_time} mins</Typography>
-        <Typography variant="body1"><strong>Servings:</strong> {recipe.servings}</Typography>
-        <Typography variant="body1" gutterBottom><strong>Difficulty:</strong> {recipe.difficulty}</Typography>
-
-        {/* Ingredients */}
-        <Typography variant="h6" sx={{ marginTop: 2 }}>Ingredients</Typography>
-        {recipe.ingredients.length > 0 ? (
-          <ul>
-            {recipe.ingredients.map((ingredient, index) => (
-              <li key={index}>
-                {ingredient.amount} {ingredient.measurement_unit} of {ingredient.ingredient_name}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Typography>No ingredients listed.</Typography>
-        )}
-
-        {/* Steps */}
-        <Typography variant="h6" sx={{ marginTop: 2 }}>Steps</Typography>
-        {recipe.steps.length > 0 ? (
-          <ol>
-            {recipe.steps.map((step, index) => (
-              <li key={index}>{step.instruction}</li>
-            ))}
-          </ol>
-        ) : (
-          <Typography>No steps provided.</Typography>
-        )}
-
-        {/* Tags */}
-        <Typography variant="h6" sx={{ marginTop: 2 }}>Tags</Typography>
-        {recipe.tags.length > 0 ? (
-          <Typography>{recipe.tags.join(", ")}</Typography>
-        ) : (
-          <Typography>No tags available.</Typography>
-        )}
-
-        {/* Images */}
-        <Typography variant="h6" sx={{ marginTop: 2 }}>Images</Typography>
-        {recipe.images.length > 0 ? (
-          <Grid container spacing={2}>
-            {recipe.images.map((imageUrl, index) => (
-              <Grid item key={index}>
-                <img 
-                  src={imageUrl} 
-                  alt="Recipe" 
-                  style={{ 
-                    width: "200px", 
-                    height: "150px",
-                    objectFit: "cover",
-                    borderRadius: "10px",
-                    boxShadow: "o 4px 8px rgba(0, 0, 0, 0.1)"
-                     }}
-                 />
-              </Grid>
-            ))}
-          </Grid>
-        ) : (
-          <Typography>No images uploaded.</Typography>
-        )}
-
-        {/* Buttons */}
-        <Grid container spacing={2} sx={{ marginTop: 3 }}>
-          {isOwner && (
-            <>
-              <Grid item>
-                <Button variant="contained" color="primary" onClick={() => navigate(`/edit-recipe/${id}`)}>
-                  Edit Recipe
-                </Button>
-              </Grid>
-              <Grid item>
-                <Button variant="contained" color="error" onClick={handleDelete}>
-                  Delete Recipe
-                </Button>
-              </Grid>
-            </>
+      {/* 🔹 Recipe Details */}
+      <Card sx={{ maxWidth: 800, margin: "20px auto", padding: 2, borderRadius: 3, boxShadow: 3 }}>
+        <CardContent>
+          {recipe.username && (
+            <Typography variant="subtitle1" color="textSecondary">
+              Created by: {recipe.username}
+            </Typography>
           )}
-          <Grid item>
-            <Button variant="outlined" onClick={() => navigate("/recipes")}>
-              Back to Recipes
-            </Button>
-          </Grid>
-        </Grid>
 
-        {error && (
-          <Typography color="error" sx={{ marginTop: 2 }}>
-            {error}
-          </Typography>
-        )}
-      </CardContent>
-    </Card>
+          <Typography variant="body1" paragraph><strong>Description:</strong> {recipe.description}</Typography>
+          <Typography variant="body1"><strong>Cuisine:</strong> {recipe.cuisine}</Typography>
+          <Typography variant="body1"><strong>Prep Time:</strong> {recipe.prep_time} mins</Typography>
+          <Typography variant="body1"><strong>Cook Time:</strong> {recipe.cook_time} mins</Typography>
+          <Typography variant="body1"><strong>Servings:</strong> {recipe.servings}</Typography>
+          <Typography variant="body1" gutterBottom><strong>Difficulty:</strong> {recipe.difficulty}</Typography>
+
+          {/* Ingredients */}
+          <Typography variant="h6" sx={{ marginTop: 2 }}>Ingredients</Typography>
+          {recipe.ingredients.length > 0 ? (
+            <ul>
+              {recipe.ingredients.map((ingredient, index) => (
+                <li key={index}>
+                  {ingredient.amount} {ingredient.measurement_unit} of {ingredient.ingredient_name}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Typography>No ingredients listed.</Typography>
+          )}
+
+          {/* Steps */}
+          <Typography variant="h6" sx={{ marginTop: 2 }}>Steps</Typography>
+          {recipe.steps.length > 0 ? (
+            <ol>
+              {recipe.steps.map((step, index) => (
+                <li key={index}>{step.instruction}</li>
+              ))}
+            </ol>
+          ) : (
+            <Typography>No steps provided.</Typography>
+          )}
+
+          {/* Tags */}
+          <Typography variant="h6" sx={{ marginTop: 2 }}>Tags</Typography>
+          {recipe.tags.length > 0 ? (
+            <Typography>{recipe.tags.join(", ")}</Typography>
+          ) : (
+            <Typography>No tags available.</Typography>
+          )}
+
+          {/* Buttons */}
+          <Grid container spacing={2} sx={{ marginTop: 3 }}>
+            {isOwner && (
+              <>
+                <Grid item>
+                  <Button variant="contained" color="primary" onClick={() => navigate(`/edit-recipe/${id}`)}>
+                    Edit Recipe
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button variant="contained" color="error" onClick={handleDelete}>
+                    Delete Recipe
+                  </Button>
+                </Grid>
+              </>
+            )}
+            <Grid item>
+              <Button variant="outlined" onClick={() => navigate("/recipes")}>
+                Back to Recipes
+              </Button>
+            </Grid>
+          </Grid>
+
+          {error && (
+            <Typography color="error" sx={{ marginTop: 2 }}>
+              {error}
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 };
 
