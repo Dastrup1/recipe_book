@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 import os
-from models import db, User, Recipe
+from models import db, User, Recipe, RecipeIngredient, RecipeStep, Image
 from datetime import datetime
 from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
@@ -58,6 +58,21 @@ app.config['MAIL_DEFAULT_SENDER'] = 'dylanastrup@gmail.com'
 
 mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config['JWT_SECRET_KEY'])
+
+@app.route("/ping")
+def ping():
+    print("📶 /ping called!")
+    return "pong", 200
+
+
+@app.route('/api/whoami')
+@jwt_required()
+def whoami():
+    print("🔍 Headers received:", dict(request.headers))  # Add this line
+    current_user = get_jwt_identity()
+    print("🔍 JWT Identity Received:", current_user)
+    return jsonify(current_user)
+
 
 
 ## REGISTER ##
@@ -130,7 +145,6 @@ def register_options():
 @cross_origin(origins=["http://localhost:3000", "https://recipes.dylanastrup.com"], supports_credentials=True)
 def login():
     if request.method == 'OPTIONS':
-        # CORS preflight response
         return '', 200
 
     data = request.get_json()
@@ -141,12 +155,11 @@ def login():
     user = User.query.filter_by(username=data['username']).first()
 
     if user and check_password_hash(user.password_hash, data['password']):
-        access_token = create_access_token(identity=str(user.id), fresh=True)
-        refresh_token = create_refresh_token(identity=str(user.id))
+        access_token = create_access_token(identity=str(user.id), additional_claims={"role": user.role}, fresh=True)
+        refresh_token = create_refresh_token(identity=str(user.id), additional_claims={"role": user.role})
         return jsonify(access_token=access_token, refresh_token=refresh_token), 200
 
     return jsonify({"error": "Invalid credentials"}), 401
-
 
 ## FORGOT PASSWORD ##
 
@@ -222,7 +235,10 @@ def test_route():
 @app.route('/api/recipes', methods=['GET'])
 @jwt_required()
 def get_recipes():
-    current_user = get_jwt_identity()
+    identity = get_jwt_identity()
+    user_id = identity.get("id") if isinstance(identity, dict) else identity
+    role = identity.get("role") if isinstance(identity, dict) else None
+
     search = request.args.get('search', '').lower()
     sort_by = request.args.get('sort', '')
 
@@ -234,17 +250,17 @@ def get_recipes():
             (Recipe.recipe_name.ilike(f"%{search}%")) |
             (Recipe.cuisine.ilike(f"%{search}%")) |
             (Recipe.recipe_description.ilike(f"%{search}%")) |
-            ((Recipe.prep_time + Recipe.cook_time).cast(String).ilike(f"%{search}%"))  # ✅ Search by total_time
+            ((Recipe.prep_time + Recipe.cook_time).cast(String).ilike(f"%{search}%"))
         )
 
-    # Sorting options (Now includes `total_time`)
+    # Sorting options
     sort_options = {
         "recipe_name_asc": Recipe.recipe_name.asc(),
         "recipe_name_desc": Recipe.recipe_name.desc(),
         "cuisine_asc": Recipe.cuisine.asc(),
         "cuisine_desc": Recipe.cuisine.desc(),
-        "total_time_asc": (Recipe.prep_time + Recipe.cook_time).asc(),  # ✅ Sort by total time (shortest first)
-        "total_time_desc": (Recipe.prep_time + Recipe.cook_time).desc(),  # ✅ Sort by total time (longest first)
+        "total_time_asc": (Recipe.prep_time + Recipe.cook_time).asc(),
+        "total_time_desc": (Recipe.prep_time + Recipe.cook_time).desc(),
         "difficulty_asc": Recipe.difficulty.asc(),
         "difficulty_desc": Recipe.difficulty.desc(),
         "servings_asc": Recipe.servings.asc(),
@@ -258,13 +274,11 @@ def get_recipes():
     
     recipe_list = []
     for recipe in recipes:
-        # Initialize related data lists
         ingredients_data = []
         steps_data = []
         tags_data = []
         images_data = []
 
-        # Fetch ingredients with measurements
         for recipe_ingredient in recipe.recipe_ingredient:
             ingredient = recipe_ingredient.ingredient
             measurement = recipe_ingredient.measurement
@@ -275,27 +289,22 @@ def get_recipes():
                 "measurement_unit": measurement.measurement_name if measurement else None
             })
 
-        # Fetch recipe steps
         steps_data = [
             {"step_number": step.step_number, "instruction": step.step_description}
             for step in recipe.recipe_step
         ]
 
-        # Fetch related tags
         tags_data = [tag.tag.name for tag in recipe.tags]
-
-        # Fetch recipe images
         images_data = [image.image_url for image in recipe.image]
 
-        # Construct response
         recipe_list.append({
             "id": recipe.id,
             "recipe_name": recipe.recipe_name,
             "description": recipe.recipe_description,
             "cuisine": recipe.cuisine,
-            "prep_time": recipe.prep_time,  # ✅ Kept separately for Recipe Details page
-            "cook_time": recipe.cook_time,  # ✅ Kept separately for Recipe Details page
-            "total_time": recipe.prep_time + recipe.cook_time,  # ✅ Used for sorting/searching
+            "prep_time": recipe.prep_time,
+            "cook_time": recipe.cook_time,
+            "total_time": recipe.prep_time + recipe.cook_time,
             "servings": recipe.servings,
             "difficulty": recipe.difficulty,
             "created_at": recipe.created_at,
@@ -306,6 +315,7 @@ def get_recipes():
         })
 
     return jsonify(recipe_list)
+
 
 
 ## CREATE RECIPES ##
@@ -580,28 +590,37 @@ def update_recipe(recipe_id):
 @app.route('/api/recipes/<int:recipe_id>', methods=['DELETE'])
 @jwt_required()
 def delete_recipe(recipe_id):
-    current_user = get_jwt_identity()
-    
-    # Find the recipe
+    current_user_id = get_jwt_identity()
+
+    # 1️⃣ Fetch full user object
+    user = User.query.get(current_user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # 2️⃣ Find the recipe
     recipe_entry = Recipe.query.get(recipe_id)
     if not recipe_entry:
         return jsonify({"error": "Recipe not found"}), 404
 
-    # Ensure only the owner can delete it
-    if str(recipe_entry.user_id) != str(current_user):
+    # 3️⃣ Check permissions
+    if user.role != 'admin' and str(recipe_entry.user_id) != str(current_user_id):
         return jsonify({"error": "Unauthorized to delete this recipe"}), 403
 
     try:
-        # Delete related data first to maintain integrity
+        # 4️⃣ Delete related data first
         RecipeIngredient.query.filter_by(recipe_id=recipe_id).delete()
         RecipeStep.query.filter_by(recipe_id=recipe_id).delete()
         Image.query.filter_by(recipe_id=recipe_id).delete()
 
-        # Delete recipe
+        # 5️⃣ Delete the recipe
         db.session.delete(recipe_entry)
         db.session.commit()
 
         return jsonify({"message": f"Recipe {recipe_id} deleted successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
     except Exception as e:
         db.session.rollback()
@@ -763,6 +782,131 @@ def update_profile():
         db.session.rollback()
         print("Update Error:", str(e))
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+        current_user = get_jwt_identity()
+
+        # Re-issue access token using full identity (which includes id and role)
+        claims = get_jwt()
+        role = claims.get("role")
+        access_token = create_access_token(identity=str(current_user), additional_claims={"role": role}, fresh=False)
+
+
+        return jsonify(access_token=access_token), 200
+    
+@app.route('/api/admin/dashboard', methods=['GET'])
+@jwt_required()
+def admin_dashboard():
+    current_user = get_jwt_identity()
+
+    # If your token's identity is just the user ID, you'll need to fetch the role
+    if isinstance(current_user, str) or isinstance(current_user, int):
+        user = User.query.get(current_user)
+        if not user or user.role != 'admin':
+            return jsonify({"error": "Admin access only"}), 403
+    else:
+        # If your token uses `identity={"id": user.id, "role": user.role}`
+        if current_user.get("role") != "admin":
+            return jsonify({"error": "Admin access only"}), 403
+
+    return jsonify({"message": "Welcome to the admin dashboard!"})
+
+@app.route('/api/admin/users', methods=['GET'])
+@jwt_required()
+def get_all_users():
+    current_user = get_jwt_identity()
+
+    if isinstance(current_user, str) or isinstance(current_user, int):
+        user = User.query.get(current_user)
+        if not user or user.role != 'admin':
+            return jsonify({"error": "Admin access only"}), 403
+    else:
+        if current_user.get("role") != "admin":
+            return jsonify({"error": "Admin access only"}), 403
+
+    users = User.query.all()
+
+    user_list = [{
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "recipe_count": len(user.recipe)  # Requires user.recipe relationship
+    } for user in users]
+
+    return jsonify(user_list), 200
+
+
+
+@app.route('/api/admin/users/<int:user_id>/role', methods=['PATCH'])
+@jwt_required()
+def update_user_role(user_id):
+    current_user = get_jwt_identity()
+
+    if isinstance(current_user, str) or isinstance(current_user, int):
+        user = User.query.get(current_user)
+        if not user or user.role != 'admin':
+            return jsonify({"error": "Admin access only"}), 403
+    else:
+        if current_user.get("role") != "admin":
+            return jsonify({"error": "Admin access only"}), 403
+
+    data = request.get_json()
+    new_role = data.get("role")
+
+    if new_role not in ["admin", "user"]:
+        return jsonify({"error": "Invalid role"}), 400
+
+    target_user = User.query.get(user_id)
+    if not target_user:
+        return jsonify({"error": "User not found"}), 404
+
+    target_user.role = new_role
+    db.session.commit()
+
+    return jsonify({"message": f"User {target_user.username} role updated to {new_role}"}), 200
+
+import traceback  # ← ensure this is at the top of your app.py
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id):
+    jwt_data = get_jwt()
+    if jwt_data.get("role") != "admin":
+        return jsonify({"error": "Admin access required"}), 403
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if user.username == '[deleted]':
+        return jsonify({"error": "Cannot delete the system user"}), 403
+
+    deleted_user = User.query.filter_by(username='[deleted]').first()
+    if not deleted_user:
+        return jsonify({"error": "'[deleted]' user not found"}), 500
+
+    # Reassign related recipes to [deleted] user
+    for recipe in user.recipe:
+        recipe.user_id = deleted_user.id
+
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({"message": f"User {user.username} deleted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)

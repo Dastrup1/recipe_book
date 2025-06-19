@@ -3,9 +3,9 @@
 # === SETTINGS ===
 REMOTE_NAME="origin"
 BRANCH_NAME="main"
-WINDOWS_SSH="Dylan@192.168.4.137"
+WINDOWS_SSH="Dylan@192.168.4.72"
 WINDOWS_PROJECT_PATH="C:/Users/Dylan/Desktop/recipe_book"
-SMB_SHARE="smb://192.168.4.137/recipe_book_git"
+SMB_SHARE="smb://192.168.4.72/recipe_book_git"
 MOUNT_POINT="/Volumes/recipe_book_git"
 
 echo "🚀 Starting deployment..."

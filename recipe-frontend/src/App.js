@@ -9,13 +9,18 @@ import EditRecipe from "./routes/EditRecipe";
 import Profile from "./routes/Profile";
 import ForgotPassword from "./routes/ForgotPassword";
 import ResetPassword from "./routes/ResetPassword";
-import Navbar from "./components/Navbar";   // Added Navbar import
+import AdminDashboard from "./routes/AdminDashboard";
+import Navbar from "./components/Navbar";
 import { jwtDecode } from "jwt-decode";
+
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import theme from './theme';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +31,7 @@ function App() {
     const token = localStorage.getItem("token");
     if (!token) {
       setIsLoggedIn(false);
+      setUserRole(null);
       return false;
     }
 
@@ -40,11 +46,13 @@ function App() {
         return refreshed;
       } else {
         setIsLoggedIn(true);
+        setUserRole(decodedToken.role || null);
         return true;
       }
     } catch (error) {
       console.error("Invalid token:", error);
       setIsLoggedIn(false);
+      setUserRole(null);
       return false;
     }
   };
@@ -54,6 +62,7 @@ function App() {
 
     if (!refresh_token) {
       setIsLoggedIn(false);
+      setUserRole(null);
       return false;
     }
 
@@ -69,14 +78,18 @@ function App() {
       const data = await response.json();
       if (response.ok) {
         localStorage.setItem("token", data.access_token);
+        const decoded = jwtDecode(data.access_token);
+        setUserRole(decoded.role || null);
         return true;
       } else {
         setIsLoggedIn(false);
+        setUserRole(null);
         return false;
       }
     } catch (error) {
       console.error("Token refresh failed:", error);
       setIsLoggedIn(false);
+      setUserRole(null);
       return false;
     }
   };
@@ -85,13 +98,14 @@ function App() {
     localStorage.removeItem("token");
     localStorage.removeItem("refresh_token");
     setIsLoggedIn(false);
+    setUserRole(null);
     navigate("/login");
   };
 
   return (
-    <div>
-      <Navbar isLoggedIn={isLoggedIn} handleLogout={handleLogout} />
-
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Navbar isLoggedIn={isLoggedIn} handleLogout={handleLogout} userRole={userRole} />
       <Routes>
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
         <Route path="/register" element={<Register />} />
@@ -100,11 +114,20 @@ function App() {
         <Route path="/recipes/:id" element={isLoggedIn ? <RecipeDetail /> : <Navigate to="/login" />} />
         <Route path="/create-recipe" element={isLoggedIn ? <CreateRecipe /> : <Navigate to="/login" />} />
         <Route path="/edit-recipe/:id" element={isLoggedIn ? <EditRecipe /> : <Navigate to="/login" />} />
-        <Route path="/" element={isLoggedIn ? <Navigate to="/recipes" /> : <Navigate to="/login" />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/admin" element={
+          isLoggedIn && userRole === "admin" ? (
+            <AdminDashboard />
+          ) : isLoggedIn ? (
+            <Navigate to="/recipes" />
+          ) : (
+            <Navigate to="/login" />
+          )
+        } />
+        <Route path="/" element={isLoggedIn ? <Navigate to="/recipes" /> : <Navigate to="/login" />} />
       </Routes>
-    </div>
+    </ThemeProvider>
   );
 }
 

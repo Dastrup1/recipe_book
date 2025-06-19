@@ -6,17 +6,12 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Avatar from '@mui/material/Avatar';
+import Tooltip from '@mui/material/Tooltip';
 import { useNavigate } from 'react-router-dom';
 
-const Navbar = () => {
+const Navbar = ({ isLoggedIn, handleLogout, userRole }) => {
   const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem('token');  // Simple check for token
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refresh_token');
-    navigate('/login');
-  };
+  const isAdmin = userRole === 'admin';
 
   return (
     <Box sx={{ flexGrow: 1, marginBottom: 3 }}>
@@ -34,11 +29,33 @@ const Navbar = () => {
           {isLoggedIn ? (
             <>
               <Button color="inherit" onClick={() => navigate('/recipes')}>Recipes</Button>
+              <Button color="inherit" onClick={() => navigate('/create-recipe')}>Create</Button>
+
+
+              {isAdmin && (
+                <Button color="inherit" onClick={() => navigate('/admin')}>
+                  Admin Panel
+                </Button>
+              )}
+
               <Button color="inherit" onClick={handleLogout}>Logout</Button>
-              
-              <IconButton onClick={() => navigate('/profile')} sx={{ ml: 2 }}>
-                <Avatar sx={{ bgcolor: '#D28415' }}>A</Avatar>  {/* Placeholder Avatar */}
-              </IconButton>
+
+              <Tooltip title={isAdmin ? "Admin User" : "User Profile"}>
+                <IconButton onClick={() => navigate('/profile')} sx={{ ml: 2 }}>
+                  <Avatar sx={{ bgcolor: isAdmin ? '#FF7043' : '#D28415' }}>
+                    A
+                  </Avatar>
+                </IconButton>
+              </Tooltip>
+
+              {isAdmin && (
+                <Typography
+                  variant="body2"
+                  sx={{ color: '#fff', ml: 1, fontWeight: 'bold', fontSize: '0.9rem' }}
+                >
+                  (Admin)
+                </Typography>
+              )}
             </>
           ) : (
             <>
