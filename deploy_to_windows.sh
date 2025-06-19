@@ -41,6 +41,13 @@ if [ -z "$commit_msg" ]; then
   commit_msg="Auto-deploy commit"
 fi
 
+
+echo "⚙️ Building React frontend..."
+cd ~/Documents/recipe_book/recipe-frontend
+npm install
+npm run build
+
+
 echo "🔍 Committing and pushing local changes..."
 cd ~/Documents/recipe_book || exit 1
 
