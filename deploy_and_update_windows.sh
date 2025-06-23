@@ -1,10 +1,16 @@
 #!/bin/bash
 
+# Get commit message from argument or fallback to default
+commit_msg="$1"
+if [ -z "$commit_msg" ]; then
+  commit_msg="Auto-deploy commit"
+fi
+
 echo "🚀 Starting Mac → GitHub push..."
 cd ~/Documents/recipe_book || exit 1
 
 git add .
-git commit -m "Quick deploy"
+git commit -m "$commit_msg"
 git push origin main
 
 echo "🔐 SSHing into Windows to pull and restart..."
@@ -27,3 +33,4 @@ nssm restart Caddy
 EOF
 
 echo "✅ All done!"
+exit 0
