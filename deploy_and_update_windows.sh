@@ -1,19 +1,16 @@
 #!/bin/bash
 
-# === SETTINGS ===
-TERMINAL_NOTIFIER="/opt/homebrew/bin/terminal-notifier"  # Update this if needed
-
 # Ask for a commit message using AppleScript (GUI dialog)
 commit_msg=$(osascript -e 'Tell application "System Events" to display dialog "Enter commit message:" default answer ""' -e 'text returned of result')
 
 if [ -z "$commit_msg" ]; then
-  $TERMINAL_NOTIFIER -title "❌ Deployment Cancelled" -message "No commit message entered." -sound Funk
+  terminal-notifier -title "❌ Deployment Cancelled" -message "No commit message entered." -sound Funk
   exit 1
 fi
 
 echo "🚀 Starting Mac → GitHub push..."
 cd ~/Documents/recipe_book || {
-  $TERMINAL_NOTIFIER -title "❌ Deployment Failed" -message "Could not find recipe_book directory." -sound Basso
+  terminal-notifier -title "❌ Deployment Failed" -message "Could not find recipe_book directory." -sound Basso
   exit 1
 }
 
@@ -21,7 +18,7 @@ cd ~/Documents/recipe_book || {
 git add .
 git commit -m "$commit_msg"
 if ! git push origin main; then
-  $TERMINAL_NOTIFIER -title "❌ Deployment Failed" -message "Git push failed. Check your internet or repo settings." -sound Basso
+  terminal-notifier -title "❌ Deployment Failed" -message "Git push failed. Check your internet or repo settings." -sound Basso
   exit 1
 fi
 
@@ -38,16 +35,23 @@ powershell -Command "
   Copy-Item 'recipes.db' (\$backupDir + '/recipes_' + \$timestamp + '.db')
 "
 
+REM Ensure we are on the main branch
+git checkout main 2>NUL || git checkout -b main origin/main
+
+REM Reset any local changes and clean metadata files
+git reset --hard
+git clean -fd
+
+REM Pull latest updates
 git pull origin main
 
+REM Restart app services
 nssm restart FlaskApp
 nssm restart ReactApp
 nssm restart Caddy
 EOF
 
 # Success notification
-$TERMINAL_NOTIFIER -title "✅ Deployment Success" -message "Deployment complete and services restarted!" -sound Hero
+terminal-notifier -title "✅ Deployment Success" -message "Deployment complete and services restarted!" -sound Hero
 
 echo "✅ All done!"
-
-echo "$(date): Deployment successful" >> ~/Documents/deploy_log.txt
