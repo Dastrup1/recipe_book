@@ -1,16 +1,32 @@
 #!/bin/bash
 
+# Helper function for robust notification
+notify() {
+  title="$1"
+  message="$2"
+  sound="$3"
+
+  if ! terminal-notifier \
+    -title "$title" \
+    -message "$message" \
+    -sound "$sound" \
+    -appIcon /System/Applications/Launchpad.app/Contents/Resources/Launchpad.icns \
+    -sender com.apple.Terminal; then
+    osascript -e "display alert \"$title\" message \"$message\""
+  fi
+}
+
 # Ask for a commit message using AppleScript (GUI dialog)
 commit_msg=$(osascript -e 'Tell application "System Events" to display dialog "Enter commit message:" default answer ""' -e 'text returned of result')
 
 if [ -z "$commit_msg" ]; then
-  terminal-notifier -title "❌ Deployment Cancelled" -message "No commit message entered." -sound Funk
+  notify "❌ Deployment Cancelled" "No commit message entered." "Funk"
   exit 1
 fi
 
 echo "🚀 Starting Mac → GitHub push..."
 cd ~/Documents/recipe_book || {
-  terminal-notifier -title "❌ Deployment Failed" -message "Could not find recipe_book directory." -sound Basso
+  notify "❌ Deployment Failed" "Could not find recipe_book directory." "Basso"
   exit 1
 }
 
@@ -18,7 +34,7 @@ cd ~/Documents/recipe_book || {
 git add .
 git commit -m "$commit_msg"
 if ! git push origin main; then
-  terminal-notifier -title "❌ Deployment Failed" -message "Git push failed. Check your internet or repo settings." -sound Basso
+  notify "❌ Deployment Failed" "Git push failed. Check your internet or repo settings." "Basso"
   exit 1
 fi
 
@@ -49,26 +65,13 @@ EOF
 
 # Check if SSH session succeeded
 if [ $? -ne 0 ]; then
-  terminal-notifier -title "❌ Deployment Failed" \
-    -message "An error occurred during Windows deployment. Check logs." \
-    -sound Basso
+  notify "❌ Deployment Failed" "An error occurred during Windows deployment. Check logs." "Basso"
   echo "$ssh_output"
   exit 1
 fi
 
 echo "Triggering success notification..."
-
-# Success notification
-terminal-notifier \
-  -title "✅ Deployment Success" \
-  -message "Deployment complete and services restarted!" \
-  -sound Hero \
-  -appIcon /System/Applications/Launchpad.app/Contents/Resources/Launchpad.icns \
-  -sender com.apple.Terminal
+notify "✅ Deployment Success" "Deployment complete and services restarted!" "Hero"
 
 echo "✅ All done!"
-
 echo "$(date): Deployment successful" >> ~/Documents/deploy_log.txt
-echo "$ssh_output" >> ~/Documents/deploy_logs.txt
-
-#Test
