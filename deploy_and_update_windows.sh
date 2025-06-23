@@ -1,16 +1,19 @@
 #!/bin/bash
 
+# === SETTINGS ===
+TERMINAL_NOTIFIER="/opt/homebrew/bin/terminal-notifier"  # Update this if needed
+
 # Ask for a commit message using AppleScript (GUI dialog)
 commit_msg=$(osascript -e 'Tell application "System Events" to display dialog "Enter commit message:" default answer ""' -e 'text returned of result')
 
 if [ -z "$commit_msg" ]; then
-  terminal-notifier -title "❌ Deployment Cancelled" -message "No commit message entered." -sound Funk
+  $TERMINAL_NOTIFIER -title "❌ Deployment Cancelled" -message "No commit message entered." -sound Funk
   exit 1
 fi
 
 echo "🚀 Starting Mac → GitHub push..."
 cd ~/Documents/recipe_book || {
-  terminal-notifier -title "❌ Deployment Failed" -message "Could not find recipe_book directory." -sound Basso
+  $TERMINAL_NOTIFIER -title "❌ Deployment Failed" -message "Could not find recipe_book directory." -sound Basso
   exit 1
 }
 
@@ -18,7 +21,7 @@ cd ~/Documents/recipe_book || {
 git add .
 git commit -m "$commit_msg"
 if ! git push origin main; then
-  terminal-notifier -title "❌ Deployment Failed" -message "Git push failed. Check your internet or repo settings." -sound Basso
+  $TERMINAL_NOTIFIER -title "❌ Deployment Failed" -message "Git push failed. Check your internet or repo settings." -sound Basso
   exit 1
 fi
 
@@ -43,6 +46,8 @@ nssm restart Caddy
 EOF
 
 # Success notification
-terminal-notifier -title "✅ Deployment Success" -message "Deployment complete and services restarted!" -sound Hero
+$TERMINAL_NOTIFIER -title "✅ Deployment Success" -message "Deployment complete and services restarted!" -sound Hero
 
 echo "✅ All done!"
+
+echo "$(date): Deployment successful" >> ~/Documents/deploy_log.txt
