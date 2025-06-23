@@ -1,12 +1,41 @@
 import React from 'react';
-import { Card, CardContent, Typography, Box } from '@mui/material';
+import { Card, CardContent, Typography, Box, Button, Stack } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 
 const RecipeCard = ({ recipe }) => {
   const navigate = useNavigate();
   const defaultImage = "/no-image.png";
 
   const imageToShow = (recipe.images && recipe.images.length > 0) ? recipe.images[0] : defaultImage;
+
+  // 🧠 Get current user info from token
+  let isOwnerOrAdmin = false;
+  try {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const decoded = jwtDecode(token);
+      const currentUserId = parseInt(decoded.id);
+      const isAdmin = decoded.role === "admin";
+      const isOwner = currentUserId === recipe.user_id;
+      isOwnerOrAdmin = isAdmin || isOwner;
+    }
+  } catch (err) {
+    console.error("Invalid token:", err);
+  }
+
+  const handleEdit = (e) => {
+    e.stopPropagation();  // Prevent card click
+    navigate(`/edit-recipe/${recipe.id}`);
+  };
+
+  const handleDelete = (e) => {
+    e.stopPropagation();  // Prevent card click
+    const confirmDelete = window.confirm("Are you sure you want to delete this recipe?");
+    if (confirmDelete) {
+      navigate(`/delete-recipe/${recipe.id}`);  // optional: use a route that handles confirmation
+    }
+  };
 
   return (
     <Card 
@@ -22,7 +51,8 @@ const RecipeCard = ({ recipe }) => {
           boxShadow: 6 
         },
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        position: 'relative'
       }}
     >
       {/* Image */}
@@ -60,6 +90,28 @@ const RecipeCard = ({ recipe }) => {
         <Typography variant="body2" sx={{ marginTop: 1 }}>
           <strong>Total Time:</strong> {recipe.prep_time + recipe.cook_time} mins
         </Typography>
+
+        {/* Admin/Owner Buttons */}
+        {isOwnerOrAdmin && (
+          <Stack direction="row" spacing={1} sx={{ marginTop: 2 }}>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              size="small" 
+              onClick={handleEdit}
+            >
+              Edit
+            </Button>
+            <Button 
+              variant="outlined" 
+              color="error" 
+              size="small" 
+              onClick={handleDelete}
+            >
+              Delete
+            </Button>
+          </Stack>
+        )}
       </CardContent>
     </Card>
   );

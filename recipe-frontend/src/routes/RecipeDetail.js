@@ -31,7 +31,7 @@ const RecipeDetail = () => {
         return false;
       }
 
-      return decodedToken.sub;
+      return decodedToken;
     } catch (error) {
       console.error("Invalid token:", error);
       localStorage.removeItem("token");
@@ -42,8 +42,8 @@ const RecipeDetail = () => {
   };
 
   useEffect(() => {
-    const userId = checkAuth();
-    if (!userId) return;
+    const user = checkAuth();
+    if (!user) return;
 
     const fetchRecipe = async () => {
       try {
@@ -81,7 +81,8 @@ const RecipeDetail = () => {
   if (!recipe) return <Typography sx={{ textAlign: 'center', marginTop: 4 }}>Loading...</Typography>;
 
   const currentUser = checkAuth();
-  const isOwner = currentUser && parseInt(currentUser) === recipe.user_id;
+  const isOwner = currentUser && parseInt(currentUser.id) === recipe.user_id;
+  const isAdmin = currentUser && currentUser.role === "admin";
 
   const imageToShow = (recipe.images && recipe.images.length > 0) 
     ? recipe.images[0] 
@@ -182,7 +183,7 @@ const RecipeDetail = () => {
 
           {/* Buttons */}
           <Grid container spacing={2} sx={{ marginTop: 3 }}>
-            {isOwner && (
+            {(isOwner || isAdmin) && (
               <>
                 <Grid item>
                   <Button variant="contained" color="primary" onClick={() => navigate(`/edit-recipe/${id}`)}>
