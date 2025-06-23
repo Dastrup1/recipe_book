@@ -4,13 +4,13 @@
 commit_msg=$(osascript -e 'Tell application "System Events" to display dialog "Enter commit message:" default answer ""' -e 'text returned of result')
 
 if [ -z "$commit_msg" ]; then
-  osascript -e 'display alert "Deployment cancelled" message "No commit message entered."'
+  terminal-notifier -title "❌ Deployment Cancelled" -message "No commit message entered." -sound Funk
   exit 1
 fi
 
 echo "🚀 Starting Mac → GitHub push..."
 cd ~/Documents/recipe_book || {
-  osascript -e 'display alert "Deployment Failed" message "Could not find recipe_book directory."'
+  terminal-notifier -title "❌ Deployment Failed" -message "Could not find recipe_book directory." -sound Basso
   exit 1
 }
 
@@ -18,7 +18,7 @@ cd ~/Documents/recipe_book || {
 git add .
 git commit -m "$commit_msg"
 if ! git push origin main; then
-  osascript -e 'display alert "Deployment Failed" message "Git push failed. Check your internet or repo settings."'
+  terminal-notifier -title "❌ Deployment Failed" -message "Git push failed. Check your internet or repo settings." -sound Basso
   exit 1
 fi
 
@@ -43,6 +43,6 @@ nssm restart Caddy
 EOF
 
 # Success notification
-osascript -e 'display notification "Deployment complete and services restarted!" with title "✅ Deployment Success" sound name "Hero"'
+terminal-notifier -title "✅ Deployment Success" -message "Deployment complete and services restarted!" -sound Hero
 
 echo "✅ All done!"
