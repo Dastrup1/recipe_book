@@ -56,8 +56,15 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+echo "Triggering success notification..."
+
 # Success notification
-terminal-notifier -title "✅ Deployment Success" -message "Deployment complete and services restarted!" -sound Hero
+terminal-notifier \
+  -title "✅ Deployment Success" \
+  -message "Deployment complete and services restarted!" \
+  -sound Hero \
+  -appIcon /System/Applications/Launchpad.app/Contents/Resources/Launchpad.icns \
+  -sender com.apple.Terminal
 
 echo "✅ All done!"
 
