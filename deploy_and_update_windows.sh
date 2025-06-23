@@ -63,3 +63,5 @@ echo "✅ All done!"
 
 echo "$(date): Deployment successful" >> ~/Documents/deploy_log.txt
 echo "$ssh_output" >> ~/Documents/deploy_logs.txt
+
+#Test
