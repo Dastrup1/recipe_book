@@ -15,16 +15,20 @@ const RecipeCard = ({ recipe }) => {
     const token = localStorage.getItem("token");
     if (token) {
       const decoded = jwtDecode(token);
+      console.log("🔍 Decoded token in RecipeCard:", decoded);
+      console.log("📦 Recipe.user_id:", recipe.user_id);
+
       const currentUserId = parseInt(decoded.id);
       const isAdmin = decoded.role === "admin";
       const isOwner = currentUserId === recipe.user_id;
+
+      console.log("🧾 currentUserId:", currentUserId, "isAdmin:", isAdmin, "isOwner:", isOwner);
+
       isOwnerOrAdmin = isAdmin || isOwner;
     }
   } catch (err) {
-    console.error("Invalid token:", err);
+    console.error("🚫 Invalid token:", err);
   }
-
-  console.log("Decoded token:", decoded);
 
   const handleEdit = (e) => {
     e.stopPropagation();  // Prevent card click
@@ -35,13 +39,13 @@ const RecipeCard = ({ recipe }) => {
     e.stopPropagation();  // Prevent card click
     const confirmDelete = window.confirm("Are you sure you want to delete this recipe?");
     if (confirmDelete) {
-      navigate(`/delete-recipe/${recipe.id}`);  // optional: use a route that handles confirmation
+      navigate(`/delete-recipe/${recipe.id}`);
     }
   };
 
   return (
     <Card 
-      onClick={() => navigate(`/recipes/${recipe.id}`)}  // ✅ Whole card clickable
+      onClick={() => navigate(`/recipes/${recipe.id}`)}
       sx={{ 
         borderRadius: 3, 
         boxShadow: 3, 
@@ -118,8 +122,5 @@ const RecipeCard = ({ recipe }) => {
     </Card>
   );
 };
-
-console.log("Recipe:", recipe);
-
 
 export default RecipeCard;
