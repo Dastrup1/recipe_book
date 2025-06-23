@@ -24,6 +24,8 @@ const RecipeCard = ({ recipe }) => {
     console.error("Invalid token:", err);
   }
 
+  console.log("Decoded token:", decoded);
+
   const handleEdit = (e) => {
     e.stopPropagation();  // Prevent card click
     navigate(`/edit-recipe/${recipe.id}`);
@@ -116,5 +118,8 @@ const RecipeCard = ({ recipe }) => {
     </Card>
   );
 };
+
+console.log("Recipe:", recipe);
+
 
 export default RecipeCard;
