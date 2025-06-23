@@ -24,8 +24,9 @@ fi
 
 # SSH to Windows and update
 echo "🔐 SSHing into Windows to pull and restart..."
-ssh Dylan@192.168.4.72 << 'EOF'
-cd C:/Users/Dylan/Desktop/recipe_book
+
+ssh_output=$(ssh Dylan@192.168.4.72 << 'EOF'
+cd C:/Users/Dylan/Desktop/recipe_book || exit 1
 
 echo "📦 Backing up recipes.db..."
 powershell -Command "
@@ -33,25 +34,32 @@ powershell -Command "
   if (!(Test-Path \$backupDir)) { New-Item -ItemType Directory -Path \$backupDir };
   \$timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss';
   Copy-Item 'recipes.db' (\$backupDir + '/recipes_' + \$timestamp + '.db')
-"
+" || exit 1
 
-REM Ensure we are on the main branch
-git checkout main 2>NUL || git checkout -b main origin/main
+git checkout main || exit 1
+git reset --hard origin/main || exit 1
+git clean -fd || exit 1
+git pull origin main || exit 1
 
-REM Reset any local changes and clean metadata files
-git reset --hard
-git clean -fd
-
-REM Pull latest updates
-git pull origin main
-
-REM Restart app services
-nssm restart FlaskApp
-nssm restart ReactApp
-nssm restart Caddy
+nssm restart FlaskApp || exit 1
+nssm restart ReactApp || exit 1
+nssm restart Caddy || exit 1
 EOF
+)
+
+# Check if SSH session succeeded
+if [ $? -ne 0 ]; then
+  terminal-notifier -title "❌ Deployment Failed" \
+    -message "An error occurred during Windows deployment. Check logs." \
+    -sound Basso
+  echo "$ssh_output"
+  exit 1
+fi
 
 # Success notification
 terminal-notifier -title "✅ Deployment Success" -message "Deployment complete and services restarted!" -sound Hero
 
 echo "✅ All done!"
+
+echo "$(date): Deployment successful" >> ~/Documents/deploy_log.txt
+echo "$ssh_output" >> ~/Documents/deploy_logs.txt
