@@ -46,10 +46,11 @@ cd C:/Users/Dylan/Desktop/recipe_book || exit 1
 
 echo "📦 Backing up recipes.db..."
 powershell -Command "
-  \$backupDir = 'backups';
+  \$projectDir = 'C:\Users\Dylan\Desktop\recipe_book';
+  \$backupDir = \"\$projectDir\\backups\";
   if (!(Test-Path \$backupDir)) { New-Item -ItemType Directory -Path \$backupDir };
   \$timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss';
-  Copy-Item 'recipes.db' (\$backupDir + '/recipes_' + \$timestamp + '.db')
+  Copy-Item \"\$projectDir\\recipes.db\" \"\$backupDir\\recipes_\$timestamp.db\"
 " || exit 1
 
 git checkout main || exit 1
