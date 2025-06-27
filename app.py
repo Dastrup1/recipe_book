@@ -461,7 +461,11 @@ def update_recipe(recipe_id):
     if not recipe_entry:
         return jsonify({"error": "Recipe not found"}), 404
 
-    if str(recipe_entry.user_id) != str(current_user):
+    user = User.query.get(current_user)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if user.role != 'admin' and str(recipe_entry.user_id) != str(current_user):
         return jsonify({"error": "Unauthorized to edit this recipe"}), 403
 
     try:
@@ -474,7 +478,7 @@ def update_recipe(recipe_id):
         recipe_entry.servings = data.get('servings', recipe_entry.servings)
         recipe_entry.difficulty = data.get('difficulty', recipe_entry.difficulty)
 
-        # === Optimized Ingredients Handling ===
+        # Ingredients
         if 'ingredients' in data:
             incoming_ingredients = []
             for ing in data['ingredients']:
@@ -505,7 +509,6 @@ def update_recipe(recipe_id):
                     "quantity": quantity
                 })
 
-            # Remove old ingredients
             RecipeIngredient.query.filter_by(recipe_id=recipe_id).delete()
             for ing in incoming_ingredients:
                 db.session.add(RecipeIngredient(
@@ -515,7 +518,7 @@ def update_recipe(recipe_id):
                     ingredient_quantity=ing["quantity"]
                 ))
 
-        # === Optimized Steps Handling ===
+        # Steps
         if 'steps' in data:
             incoming_steps = {step['step_number']: step['instruction'] for step in data['steps']}
             existing_steps = {s.step_number: s for s in RecipeStep.query.filter_by(recipe_id=recipe_id).all()}
@@ -537,7 +540,7 @@ def update_recipe(recipe_id):
                     RecipeStep.step_number.in_(to_delete)
                 ).delete(synchronize_session=False)
 
-        # === Optimized Images Handling ===
+        # Images
         if 'images' in data:
             incoming_images = set(data['images'])
             existing_images = {img.image_url for img in Image.query.filter_by(recipe_id=recipe_id).all()}
@@ -550,7 +553,6 @@ def update_recipe(recipe_id):
 
         db.session.commit()
 
-        # Response
         return jsonify({
             "id": recipe_entry.id,
             "recipe_name": recipe_entry.recipe_name,
