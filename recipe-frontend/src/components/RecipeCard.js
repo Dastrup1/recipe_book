@@ -43,6 +43,8 @@ const RecipeCard = ({ recipe }) => {
     }
   };
 
+  console.log("📦 Rendering RecipeCard for:", recipe.recipe_name);
+  
   return (
     <Card 
       onClick={() => navigate(`/recipes/${recipe.id}`)}
